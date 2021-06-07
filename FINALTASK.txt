@@ -10,6 +10,8 @@ cd epigenomics_uvic
 cd ATAC-seq 
 ls
 
+
+
 #### 2. Retrieve from a newly generated metadata file ATAC-seq peaks (bigBed narrow, pseudoreplicated peaks, assembly GRCh38) for stomach and sigmoid_colon 
 ####    for the same donor used in the previous sections.
 
@@ -20,5 +22,74 @@ ls
     # Genome assembly: GRCh38
     # Biosample term name: stomach AND sigmoid colon
 # We have selected a total of 28 experiments: 12 for stomach and 16 for sigmoid colon. 
+
+cp /Users/catalina/Downloads/files.txt /Users/catalina/epigenomics_uvic/ATAC-seq/files.txt
+ls
+
+#Let's download the metadata file using the script download.metadata.sh
+../bin/download.metadata.sh "https://www.encodeproject.org/metadata/?type=Experiment&replicates.library.biosample.donor.uuid=d370683e-81e7-473f-8475-7716d027849b&status=released&assembly=GRCh38&biosample_ontology.term_name=sigmoid+colon&biosample_ontology.term_name=stomach&assay_slims=DNA+binding" 
+
+
+mkdir analyses
+# We will download bigBed peak calling and bigWig FC signal files. Let's prepare two folders to store these types of data.
+
+mkdir data/bigBed.files data/bigWig.files
+
+# bigBed peak calling files  (bigBed narrow, pseudoreplicated peaks, assembly GRCh38, most recent file for each tissue):
+
+grep -F H3K4me3 metadata.tsv |\
+grep -F "bigBed_narrowPeak" |\
+grep -F "pseudoreplicated_peaks" |\
+grep -F "GRCh38" |\
+awk 'BEGIN{FS=OFS="\t"}{print $1, $10, $22}' |\
+sort -k2,2 -k1,1r |\
+sort -k2,2 -u > analyses/bigBed.peaks.ids.txt
+
+cut -f1 analyses/bigBed.peaks.ids.txt |\
+while read filename; do
+  wget -P data/bigBed.files "https://www.encodeproject.org/files/$filename/@@download/$filename.bigBed"
+done
+
+
+# bigWig FC files (H3K4me3, bigWig files, fold-change, assembly GRCh38, most recent file for each tissue):
+
+grep -F H3K4me3 metadata.tsv |\
+grep -F "bigWig" |\
+grep -F "fold_change_over_control" |\
+grep -F "GRCh38" |\
+awk 'BEGIN{FS=OFS="\t"}{print $1, $10, $22}' |\
+sort -k2,2 -k1,1r |\
+sort -k2,2 -u > analyses/bigWig.FC.ids.txt
+
+cut -f1 analyses/bigWig.FC.ids.txt |\
+while read filename; do
+  wget -P data/bigWig.files "https://www.encodeproject.org/files/$filename/@@download/$filename.bigWig"
+done
+
+# Check the integrity of the downloaded files:
+
+for file_type in bigBed bigWig; do
+
+  # retrieve original MD5 hash from the metadata
+  ../bin/selectRows.sh <(cut -f1 analyses/"$file_type".*.ids.txt) metadata.tsv | cut -f1,45 > data/"$file_type".files/md5sum.txt
+
+  # compute MD5 hash on the downloaded files 
+  cat data/"$file_type".files/md5sum.txt |\
+  while read filename original_md5sum; do 
+    md5sum data/"$file_type".files/"$filename"."$file_type" |\
+    awk -v filename="$filename" -v original_md5sum="$original_md5sum" 'BEGIN{FS=" "; OFS="\t"}{print filename, original_md5sum, $1}' 
+  done > tmp 
+  mv tmp data/"$file_type".files/md5sum.txt
+
+  # make sure there are no files for which original and computed MD5 hashes differ
+  awk '$2!=$3' data/"$file_type".files/md5sum.txt
+
+done
+
+
+
+
+
+
 
 
