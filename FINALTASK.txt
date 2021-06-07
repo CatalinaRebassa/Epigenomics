@@ -87,7 +87,19 @@ for file_type in bigBed bigWig; do
 done
 
 
+# Create a folder annotation and manually download there the gencode.v24.primary_assembly.annotation file.
 
+mkdir annotation
+
+#copiam dins annotation
+cp /Users/catalina/Downloads/gencode.v24.primary_assembly.annotation.gtf.gz /Users/catalina/epigenomics_uvic/ATAC-seq/annotation/gencode.v24.primary_assembly.annotation.gtf.gz
+
+########### ESTIC AQUI 
+#Uncompress the gtf.gz file:
+gunzip annotation/gencode.v24.primary_assembly.annotation.gtf.gz
+
+#Explore the gtf file:
+less annotation/gencode.v24.primary_assembly.annotation.gtf
 
 
 
