@@ -29,6 +29,11 @@ ls
 #Let's download the metadata file using the script download.metadata.sh
 ../bin/download.metadata.sh "https://www.encodeproject.org/metadata/?type=Experiment&replicates.library.biosample.donor.uuid=d370683e-81e7-473f-8475-7716d027849b&status=released&assembly=GRCh38&biosample_ontology.term_name=sigmoid+colon&biosample_ontology.term_name=stomach&assay_slims=DNA+binding" 
 
+../bin/download.metadata.sh "https://www.encodeproject.org/metadata/?type=Experiment&replicates.library.biosample.donor.uuid=d370683e-81e7-473f-8475-7716d027849b&status=released&assay_slims=DNA+accessibility&biosample_ontology.term_name=sigmoid+colon&biosample_ontology.term_name=stomach&assembly=GRCh38&assay_title=ATAC-seq" 
+
+head -1 metadata.tsv | awk 'BEGIN{FS=OFS="\t"}{for (i=1;i<=NF;i++){print $i, i}}'
+
+
 
 mkdir analyses
 # We will download bigBed peak calling and bigWig FC signal files. Let's prepare two folders to store these types of data.
@@ -37,7 +42,6 @@ mkdir data/bigBed.files data/bigWig.files
 
 # bigBed peak calling files  (bigBed narrow, pseudoreplicated peaks, assembly GRCh38, most recent file for each tissue):
 
-grep -F H3K4me3 metadata.tsv |\
 grep -F "bigBed_narrowPeak" |\
 grep -F "pseudoreplicated_peaks" |\
 grep -F "GRCh38" |\
