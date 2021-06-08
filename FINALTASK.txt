@@ -94,14 +94,51 @@ mkdir annotation
 #copiam dins annotation
 cp /Users/catalina/Downloads/gencode.v24.primary_assembly.annotation.gtf.gz /Users/catalina/epigenomics_uvic/ATAC-seq/annotation/gencode.v24.primary_assembly.annotation.gtf.gz
 
-########### ESTIC AQUI 
+########### ESTIC AQUI AIXO NO FA FALTA 
 #Uncompress the gtf.gz file:
 gunzip annotation/gencode.v24.primary_assembly.annotation.gtf.gz
 
 #Explore the gtf file:
 less annotation/gencode.v24.primary_assembly.annotation.gtf
 
+## pecifically, we will:
 
+#retrieve gene body coordinates of protein-coding genes (chr, start, end, strand)
+#remove mitochondrial genes (i.e. those located on chrM)
+#move from a 1-based to a 0-based coordinate system.
+
+awk '$3=="gene"' annotation/gencode.v24.primary_assembly.annotation.gtf |\
+grep -F "protein_coding" |\
+cut -d ";" -f1 |\
+awk 'BEGIN{OFS="\t"}{print $1, $4, $5, $10, 0, $7, $10}' |\
+sed 's/\"//g' |\
+awk 'BEGIN{FS=OFS="\t"}$1!="chrM"{$2=($2-1); print $0}' > annotation/gencode.v24.protein.coding.gene.body.bed
+
+########### FINS AQUI
+
+
+#Convert bigBed files of H3K4me3 peaks to BED files with the bigBedToBed command:
+
+mkdir data/bed.files
+
+cut -f1 analyses/bigBed.peaks.ids.txt |\
+while read filename; do
+  bigBedToBed data/bigBed.files/"$filename".bigBed data/bed.files/"$filename".bed
+done
+
+# Download from here the list of promoters ([-2 kb, +2 Kb] from TSS) of protein-coding genes. Store this file inside the annotation folder.
+
+cp /Users/catalina/Downloads/gencode.v24.protein.coding.non.redundant.TSS.bed /Users/catalina/epigenomics_uvic/ATAC-seq/annotation/gencode.v24.protein.coding.non.redundant.TSS.bed
+
+
+cat analyses/bigBed.peaks.ids.txt |\
+while read filename tissue; do 
+    bedtools intersect -a data/bed.files/"$filename".bed -b annotation/gencode.v24.protein.coding.non.redundant.TSS.bed -u |\
+    cut -f7 |\
+    sort -u > analyses/genes.with.peaks."$tissue".ATAC.txt 
+done
+
+wc -l genes.with.peaks.UBERON:0000945.ATAC.txt
 
 
 
